@@ -36,6 +36,9 @@ def execute():
     # export dataframe to json
     documents_dict = json.loads(df.to_json(orient='records'))
 
+    # assert documents_dict is not None and size is 1
+    assert documents_dict is not None and len(documents_dict) == 1, f'No documents found for report_type_id: {report_type_id}'
+
     for document in documents_dict:
         document_id = document['Document.DocID']
         document_content = misutil.get_zipped_file_contents(document_id).decode('utf-8')
