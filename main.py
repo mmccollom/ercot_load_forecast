@@ -3,6 +3,8 @@ from ercotutils import misutil
 import io
 import json
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pytz
 
 
@@ -11,10 +13,10 @@ def execute():
     s3_path = 's3://ercot-62841215/load_forecast/'
 
     # create cut_off_dt from publish_date and publish_hour
-    #cut_off_dt = datetime.now() - timedelta(days=15)
-    cut_off_dt = datetime.now() - timedelta(hours=1)
     local_tz = pytz.timezone('America/Chicago')
-    cut_off_dt = local_tz.localize(cut_off_dt)
+    cut_off_dt = datetime.now(local_tz) - timedelta(hours=1)
+
+    print(f'Cutoff Date: {cut_off_dt}')
 
     # get document list from ERCOT
     documents_dict = misutil.get_ice_doc_list(report_type_id)
@@ -74,15 +76,16 @@ def execute():
         # change hour_ending to integer
         df['hour_ending'] = df['hour_ending'].astype(int)
 
-        print(df.head())
+        # print(df.head())
         # write dataframe to s3 using pyarrow
-        # table = pa.Table.from_pandas(df)
-        # pq.write_to_dataset(table=table, root_path=s3_path, compression='snappy',
-        # partition_cols=['publish_date', 'publish_hour', 'delivery_date'])
+        table = pa.Table.from_pandas(df=df)
+        pq.write_to_dataset(table=table, root_path=s3_path, compression='snappy',
+                            partition_cols=['publish_date', 'publish_hour', 'delivery_date'])
 
 
 def lambda_handler(event, context):
     print("In Lambda Handler")
+    execute()
 
 
 if __name__ == "__main__":
